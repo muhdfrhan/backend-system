@@ -26,7 +26,15 @@ router.get('/status-funnel', protectAdmin, (req, res) => {
 
 // ROUTE 2: GET Applications by Asnaf Category (Now protected)
 router.get('/category-breakdown', protectAdmin, (req, res) => { // <-- ADDED protectAdmin
-  const sql = `CALL GetCategoryBreakdown();`; // Using a stored procedure for simplicity
+  const sql = `
+    SELECT
+        AC.name AS category_name,
+        COUNT(A.application_id) AS number_of_applications
+    FROM APPLICATIONS A
+    JOIN ASNAF_CATEGORIES AC ON A.category_id = AC.category_id
+    GROUP BY AC.name
+    ORDER BY number_of_applications DESC;
+  `;
 
   connection.query(sql, (error, results) => {
     if (error) {
@@ -63,7 +71,16 @@ router.get('/kpi-summary', protectAdmin, async (req, res) => {
 
 // ROUTE 4: Applications Trend Over Time (Line Chart)
 router.get('/applications-over-time', protectAdmin, (req, res) => {
-  const sql = `CALL GetApplicationsOverTime();`; // Using a stored procedure for simplicity
+  const sql = `
+    SELECT 
+        DATE_FORMAT(zad.submission_date, '%Y-%m') AS submission_month,
+        COUNT(a.application_id) AS application_count
+    FROM APPLICATIONS a
+    JOIN ZAKAT_APPLICATION_DETAILS zad ON a.application_id = zad.application_id
+    GROUP BY submission_month
+    ORDER BY submission_month ASC
+    LIMIT 12;
+  `;
   connection.query(sql, (error, results) => {
     if (error) {
       console.error("Error fetching applications over time:", error);
