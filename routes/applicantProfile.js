@@ -15,15 +15,7 @@ router.get('/ApplcnProfile', protectApplicant, async (req, res) => {
   }
 
   // Add A.bank_name and A.account_number to the SELECT statement
-  const sqlQuery = `
-   SELECT A.applicant_id, AC.username, A.full_name, A.nric, A.date_of_birth, 
-          A.address, A.phone, A.salary, A.email, MS.status_name, A.marital_status_id,
-          A.bank_name, A.account_number
-   FROM APPLICANTS A
-   JOIN MARITAL_STATUSES MS ON A.marital_status_id = MS.status_id
-   JOIN APPLICANT_ACCOUNTS AC ON AC.applicant_id = A.applicant_id
-   WHERE A.applicant_id = ?;
-  `;
+  const sqlQuery = `CALL GetApplicantProfileByID(?);`;
 
   try {
     const [rows] = await connection.promise().query(sqlQuery, [applcnIdFromToken]);
