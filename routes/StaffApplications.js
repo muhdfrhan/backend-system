@@ -2,6 +2,7 @@
 import express from 'express';
 import connection from '../connection-db.js';
 import { protectStaff } from '../middleware/authMiddleware.js';
+import { calculateAndSaveScore } from '../services/scoringServices.js';
 
 const router = express.Router();
 
@@ -16,13 +17,15 @@ router.get('/staff-list', protectStaff, async (req, res) => {
       A.nric AS applicant_nric,
       AC.name AS category_name,
       ZAD.submission_date,
-      APP.application_status
+      APP.application_status,
+      SCORES.total_priority_score
     FROM APPLICATIONS APP
     JOIN APPLICANTS A ON APP.applicant_id = A.applicant_id
     JOIN ASNAF_CATEGORIES AC ON APP.category_id = AC.category_id
     LEFT JOIN ZAKAT_APPLICATION_DETAILS ZAD ON APP.application_id = ZAD.application_id
+    LEFT JOIN APPLICATION_SCORES SCORES ON APP.application_id = SCORES.application_id -- <-- NEW: Join the scores table
     WHERE APP.handled_by = ?
-    ORDER BY ZAD.submission_date DESC, APP.application_id DESC;
+    ORDER BY SCORES.total_priority_score DESC, ZAD.submission_date DESC
   `;
 
   try {
@@ -88,6 +91,12 @@ router.get('/detail/:applicationId', protectStaff, async (req, res) => {
     }
     const applicationDetails = rows[0];
 
+    await calculateAndSaveScore(applicationId); // Calculate and save first
+
+    const scoreQuery = `SELECT * FROM APPLICATION_SCORES WHERE application_id = ?;`;
+    const [scoreRows] = await connection.promise().query(scoreQuery, [applicationId]);
+    const scoreData = scoreRows[0] || null;
+
     // Fetch documents (as before)
     let documentsList = [];
     if (applicationDetails.detail_id) {
@@ -103,7 +112,8 @@ router.get('/detail/:applicationId', protectStaff, async (req, res) => {
     res.json({
       ...applicationDetails,
       documents: documentsList,
-      dependents: dependentsList // <-- Added dependents list
+      dependents: dependentsList,// <-- Added dependents list
+      scoreData: scoreData 
     });
 
   } catch (err) {
