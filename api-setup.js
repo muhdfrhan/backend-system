@@ -1,5 +1,3 @@
- 
-
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -33,6 +31,7 @@ import reportRoutes from './routes/reportRoutes.js'; // <-- 1. Is this import co
 
 const app = express();
 const PORT = 3000;
+
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -79,3 +78,4 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.listen(PORT, () => {
   console.log(`✅ Server is running and accessible on http://192.168.0.240:${PORT}`);
 });
+
